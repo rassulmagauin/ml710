@@ -1,0 +1,30 @@
+# Large model weights and data
+models/
+checkpoints/
+LLaVA/playground/data/
+LLaVA/.git/
+
+# Logs
+logs/
+slurm-*.out
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# Lab materials (reference only, not our code)
+2026 Labs/
+
+# Hostfiles
+hostfile*
