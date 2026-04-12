@@ -81,6 +81,8 @@ Each team member implements one non-trivial strategy beyond the DDP baseline:
 
 ## How to Run
 
+> **For full reproduction instructions (env setup, model/data download, batch job parameters, common gotchas), see [SETUP.md](SETUP.md).**
+
 ### Prerequisites
 
 ```bash
