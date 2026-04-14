@@ -82,6 +82,8 @@ Each team member implements one non-trivial strategy beyond the DDP baseline:
 ## How to Run
 
 > **For full reproduction instructions (env setup, model/data download, batch job parameters, common gotchas), see [SETUP.md](SETUP.md).**
+>
+> **For the project parallelization plan and per-strategy system requirements, see [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md).**
 
 ### Prerequisites
 
