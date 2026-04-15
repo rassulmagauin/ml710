@@ -1,3 +1,4 @@
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -7,6 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ML710 course project: Parallelize LLaVA (Large Language and Vision Assistant) — a multimodal model from "Visual Instruction Tuning" (NeurIPS 2023). Team of 3 students, each implementing at least 1 non-trivial parallel/distributed strategy, plus a naive DDP baseline.
 
 **Deadline: April 29, 2026. Deliverable: max 30 slides (PPT/PDF).**
+
+Current repo direction:
+- **Stage 1** scripts are still kept as the original baseline / historical reference.
+- **Stage 2** scripts are now the main benchmark path: start from pre-trained `llava-v1.5-7b`, fine-tune with LoRA on reduced instruction-tuning subsets, and compare parallelization techniques on that workload.
+- The repo-level experiment wrappers should stay outside the upstream `LLaVA` code when possible.
 
 ## LLaVA Architecture
 
@@ -32,16 +38,27 @@ ml710/
 │   │   ├── zero2.json            # DeepSpeed ZeRO Stage 2 config
 │   │   └── zero3.json            # DeepSpeed ZeRO Stage 3 config
 │   └── playground/data/          # Training data
-│       ├── LLaVA-Pretrain/       # Stage 1: 558K image-caption pairs + images
-│       └── llava_v1_5_mix665k.json  # Stage 2: 665K instruction tuning data
+│       ├── LLaVA-Pretrain/       # Stage 1 data: 558K image-caption pairs + images
+│       ├── llava_v1_5_mix665k.json   # Stage 2 full mix (665K, multiple datasets)
+│       ├── llava_instruct_150k.json  # Stage 2 single-source data (150K, COCO only)
+│       ├── llava_instruct_10k.json   # Stage 2 subset for experiments (10K)
+│       └── coco/train2014/           # COCO 2014 train images for Stage 2
 ├── models/
-│   ├── vicuna-7b-v1.5/           # Base LLM for training from scratch
-│   └── llava-v1.5-7b/            # Pre-trained LLaVA checkpoint
+│   ├── vicuna-7b-v1.5/           # Base LLM (used for Stage 1 baseline)
+│   └── llava-v1.5-7b/            # Pre-trained LLaVA (start point for Stage 2)
 ├── scripts/                      # Our parallelism experiment scripts
+│   ├── download_stage2_data.sh   # Downloads Stage 2 data + creates 10K subset
+│   ├── run_stage2_1gpu.sh        # Stage 2 single-GPU baseline (main benchmark)
+│   ├── run_stage2_ddp.sh         # Stage 2 DDP 2-GPU baseline
+│   ├── run_baseline_1gpu.sh      # Stage 1 single-GPU (historical reference)
+│   └── run_baseline_ddp.sh       # Stage 1 DDP (historical reference)
+│   ├── run_logging.sh            # Shared external logging wrapper
+│   └── summarize_run.py          # Summarizes one run into txt/json/csv
 ├── configs/                      # DeepSpeed/training configs
 │   └── zero0.json                # ZeRO Stage 0 (pure DDP, no sharding)
 ├── checkpoints/                  # Training output
-├── logs/                         # SLURM job logs
+├── logs/
+│   └── runs/<user>/<run_id>/     # Per-run artifacts (train/gpu/ram/summary)
 └── 2026 Labs/                    # Course lab materials (reference)
 ```
 
@@ -87,6 +104,16 @@ LLaVA uses HuggingFace Trainer + DeepSpeed under the hood. The entry point is `l
 - `TrainingArguments`: extends HF TrainingArguments with LoRA, quantization options
 
 Training is launched via `deepspeed` launcher for multi-GPU, or plain `python` for single-GPU.
+
+Current wrapper policy:
+- Keep upstream `LLaVA` modular. Prefer repo-level shell/Python wrappers for experiment control, logging, and summarization.
+- Use `scripts/run_logging.sh` and `scripts/summarize_run.py` from training scripts instead of editing upstream `llava/train/*.py` just to collect benchmark metrics.
+- Current summaries include:
+  - end-to-end runtime
+  - trainer runtime / throughput
+  - final and average logged loss
+  - per-GPU memory/utilization snapshots
+  - per-run artifacts under `logs/runs/<user>/<run_id>/`
 
 ## Parallelism Strategies (Project Requirements)
 
