@@ -26,12 +26,29 @@ ml710/
 ├── scripts/                  # Our experiment launch scripts
 │   ├── run_baseline_1gpu.sh  # Single-GPU baseline (sbatch)
 │   ├── run_baseline_ddp.sh   # 2-GPU DDP baseline (torchrun, 2-node)
-│   └── create_subset.py      # Utility to create data subsets
+│   ├── run_stage2_1gpu.sh    # Stage 2 LoRA fine-tuning baseline (main current path)
+│   ├── run_stage2_ddp.sh     # Stage 2 DDP baseline
+│   ├── download_stage2_data.sh # Downloads Stage 2 data + creates subset
+│   ├── create_subset.py      # Utility to create data subsets
+│   ├── run_logging.sh        # Shared logging wrapper for all experiment scripts
+│   └── summarize_run.py      # Summarizes one run into text/json/csv
 ├── configs/                  # DeepSpeed configurations
 │   └── zero0.json            # ZeRO Stage 0 (pure DDP, no sharding)
 ├── CLAUDE.md                 # Claude Code project context
 └── README.md
 ```
+
+## Current Repo State
+
+The repo now has **two active experiment tracks**:
+
+1. **Stage 1 baseline (historical reference)**  
+   Uses the original LLaVA pre-training idea: train only the multimodal projector while the vision tower and LLM stay frozen.
+
+2. **Stage 2 benchmark path (current main direction)**  
+   Starts from a pre-trained `llava-v1.5-7b` checkpoint and runs LoRA fine-tuning on reduced instruction-tuning subsets. This is the current path used to compare parallelization techniques under a more realistic multimodal training workload.
+
+Stage 1 scripts are still useful as a controlled baseline. Stage 2 scripts are the current main benchmark path for systems comparison.
 
 ## HPC Environment
 
@@ -112,11 +129,82 @@ conda activate llava && bash scripts/run_baseline_ddp.sh
 
 Update `master_node` and `worker_node` in `scripts/run_baseline_ddp.sh` with actual allocated hostnames before running.
 
+### Stage 2 Single-GPU Baseline
+
+```bash
+bash scripts/download_stage2_data.sh
+sbatch scripts/run_stage2_1gpu.sh
+```
+
+This fine-tunes a pre-trained `llava-v1.5-7b` checkpoint with LoRA on the Stage 2 instruction-tuning subset (`llava_instruct_10k.json` by default).
+
+### Stage 2 DDP Baseline
+
+```bash
+# Terminal A:
+salloc -p ws-ia -N1 -n12 -w ws-l4-XXX --mem=64G
+conda activate llava && bash scripts/run_stage2_ddp.sh
+
+# Terminal B:
+salloc -p ws-ia -N1 -n12 -w ws-l4-YYY --mem=64G
+conda activate llava && bash scripts/run_stage2_ddp.sh
+```
+
+Update `master_node` and `worker_node` in `scripts/run_stage2_ddp.sh` before running.
+
 ### Create Data Subset
 
 ```bash
 python scripts/create_subset.py --input LLaVA/playground/data/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json \
     --output LLaVA/playground/data/LLaVA-Pretrain/blip_laion_cc_sbu_10k.json --n 10000
+```
+
+### Logging and Run Artifacts
+
+All current training wrappers use shared external logging helpers:
+
+- `scripts/run_logging.sh`
+- `scripts/summarize_run.py`
+
+These keep metrics collection outside the upstream `LLaVA` code. Each run records:
+
+- end-to-end runtime
+- trainer-reported runtime and throughput
+- logged losses
+- GPU memory/utilization snapshots
+- host RAM snapshots
+
+Run artifacts are stored under:
+
+```text
+logs/runs/<user>/<run_id>/
+```
+
+Typical files for one run:
+
+```text
+train.log
+gpu.csv
+ram.log
+summary.txt
+summary.json
+```
+
+There is also a per-method cumulative CSV under the same user directory:
+
+```text
+logs/runs/<user>/<method>_summary.csv
+```
+
+To add the same logging to a new training script, source the wrapper and call:
+
+```bash
+source "$PROJECT_DIR/scripts/run_logging.sh"
+setup_run_logging "<method_name>" "<run_label>" <per_device_batch> <grad_accum> <world_size>
+trap cleanup_run_logging EXIT
+start_run_logging
+...
+finish_run_logging "$TRAIN_EXIT"
 ```
 
 ## Team
