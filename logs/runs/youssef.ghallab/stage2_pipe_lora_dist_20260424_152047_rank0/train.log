@@ -1,0 +1,51 @@
+/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/cuda/__init__.py:51: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+15:20:50 INFO [rank 0] Loading LLaVA model …
+You are using a model of type llava to instantiate a model of type llava_llama. This is not supported for all configurations of models and can yield errors.
+/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/_utils.py:831: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()
+  return self.fget.__get__(instance, owner)()
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.89s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  2.97s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.26s/it]
+15:20:58 INFO [rank 0] Applying LoRA …
+15:21:03 INFO [rank 0] Stage 0: decoder layers 0–15
+15:21:03 INFO [rank 0] 2500 batches/epoch | 625 total steps
+trainable params: 338,690,048 || all params: 7,401,592,832 || trainable%: 4.575907587562904
+Traceback (most recent call last):
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 507, in <module>
+    train(args)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 439, in train
+    pipeline_step_rank0(stage, chunks, grad_scale, dtype)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 219, in pipeline_step_rank0
+    h, attn_2d, pos_ids, labels = stage(
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 99, in forward
+    h = layer(h, attention_mask=attn_4d, position_ids=position_ids)[0]
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/transformers/models/llama/modeling_llama.py", line 798, in forward
+    hidden_states, self_attn_weights, present_key_value = self.self_attn(
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/transformers/models/llama/modeling_llama.py", line 388, in forward
+    value_states = self.v_proj(hidden_states)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 317, in forward
+    result += lora_B(lora_A(dropout(x))) * scaling
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/nn/modules/linear.py", line 114, in forward
+    return F.linear(input, self.weight, self.bias)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacty of 31.58 GiB of which 8.62 MiB is free. Including non-PyTorch memory, this process has 31.38 GiB memory in use. Of the allocated memory 30.06 GiB is allocated by PyTorch, and 951.53 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

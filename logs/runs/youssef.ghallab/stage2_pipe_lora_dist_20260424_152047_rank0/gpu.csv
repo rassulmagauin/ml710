@@ -1,0 +1,5 @@
+timestamp, index, name, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB]
+2026/04/24 15:20:47.592, 0, NVIDIA RTX 5000 Ada Generation, 0 %, 0 %, 193 MiB, 32760 MiB
+2026/04/24 15:20:52.593, 0, NVIDIA RTX 5000 Ada Generation, 0 %, 0 %, 196 MiB, 32760 MiB
+2026/04/24 15:20:57.594, 0, NVIDIA RTX 5000 Ada Generation, 0 %, 0 %, 196 MiB, 32760 MiB
+2026/04/24 15:21:02.595, 0, NVIDIA RTX 5000 Ada Generation, 31 %, 2 %, 9811 MiB, 32760 MiB

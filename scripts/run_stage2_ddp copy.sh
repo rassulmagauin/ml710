@@ -13,6 +13,9 @@
 #        bash scripts/run_stage2_ddp.sh
 # =============================================================================
 
+#        bash scripts/run_stage2_ddp.sh
+# =============================================================================
+
 set -eo pipefail
 
 if command -v conda >/dev/null 2>&1; then
@@ -30,15 +33,15 @@ MASTER_PORT="${MASTER_PORT:-29500}"
 
 export PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export LLAVA_DIR="$PROJECT_DIR/LLaVA"
-export MODEL_DIR="${MODEL_DIR:-$PROJECT_DIR/models/llava-v1.5-7b}"
+export MODEL_DIR="${MODEL_DIR:-$PROJECT_DIR/models/vicuna-7b-v1.5}"
 export DATA_PATH="${DATA_PATH:-$LLAVA_DIR/playground/data/llava_instruct_10k.json}"
 export IMAGE_FOLDER="${IMAGE_FOLDER:-$LLAVA_DIR/playground/data/coco/train2014}"
-export OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/checkpoints/llava-stage2-ddp-2gpu}"
+export OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/checkpoints/llava-stage2-ddp-vicuna-b4-ga4}"
 export LOG_DIR="${LOG_DIR:-$PROJECT_DIR/logs}"
 
-PER_DEVICE_BATCH="${PER_DEVICE_BATCH:-16}"
+PER_DEVICE_BATCH="${PER_DEVICE_BATCH:-4}"
 PER_DEVICE_EVAL_BATCH="${PER_DEVICE_EVAL_BATCH:-4}"
-GRAD_ACCUM="${GRAD_ACCUM:-1}"
+GRAD_ACCUM="${GRAD_ACCUM:-4}"
 DATALOADER_WORKERS="${DATALOADER_WORKERS:-4}"
 LEARNING_RATE="${LEARNING_RATE:-2e-4}"
 WARMUP_RATIO="${WARMUP_RATIO:-0.03}"

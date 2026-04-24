@@ -1,0 +1,28 @@
+/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/cuda/__init__.py:51: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+15:20:50 INFO [rank 1] Loading LLaVA model …
+You are using a model of type llava to instantiate a model of type llava_llama. This is not supported for all configurations of models and can yield errors.
+/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/_utils.py:831: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()
+  return self.fget.__get__(instance, owner)()
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.80s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  2.96s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.24s/it]
+15:20:58 INFO [rank 1] Applying LoRA …
+15:21:03 INFO [rank 1] Stage 1: decoder layers 16–31
+15:21:03 INFO [rank 1] 2500 batches/epoch | 625 total steps
+Traceback (most recent call last):
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 507, in <module>
+    train(args)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 442, in train
+    step_loss = pipeline_step_rank1(stage, grad_scale, dtype, device)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 243, in pipeline_step_rank1
+    h_data, attn_2d, pos_ids, labels = recv_activations(dtype, device)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 184, in recv_activations
+    h       = _recv_tensor(RANK0_DST, dtype,       device)
+  File "/l/users/youssef.ghallab/ml710/LLaVA/llava/train/train_pipe_dist.py", line 164, in _recv_tensor
+    dist.recv(ndim_buf, src=src)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 47, in wrapper
+    return func(*args, **kwargs)
+  File "/home/youssef.ghallab/miniconda3/envs/llava/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1640, in recv
+    pg.recv([tensor], src, tag).wait()
+RuntimeError: [../third_party/gloo/gloo/transport/tcp/pair.cc:534] Connection closed by peer [10.127.30.220]:14772

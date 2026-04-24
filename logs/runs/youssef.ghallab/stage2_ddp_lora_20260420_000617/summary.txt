@@ -1,0 +1,37 @@
+Stage 2 DDP LoRA (rank 0) Summary
+=================================
+method                       : stage2_ddp_lora
+exit_code                    : 0
+runtime_s                    : 4491
+samples                      : 10000
+processed_samples            : 9984
+effective_batch              : 32
+samples_per_sec              : 2.2231129
+steps_per_sec                : 0.069472278
+last_logged_step             : 312
+total_steps                  : n/a
+initial_loss                 : 5.1934
+final_loss                   : 1.0397
+loss_delta                   : 4.1537
+avg_logged_loss              : 1.1796282
+goodput_loss_drop_per_sample : 0.00041603566
+statistical_efficiency       : 0.00092489423
+trainer_runtime_s            : 4280.4212
+trainer_samples_per_sec      : 2.336
+trainer_steps_per_sec        : 0.073
+trainer_train_loss           : 1.179627975783287
+trainer_epoch                : 1.0
+gpu_count_seen               : 1
+max_gpu_mem_mb               : 31443
+avg_gpu_util_pct             : 70.7
+per_gpu_metrics_json         : {"0": {"avg_util_pct": 70.7, "max_mem_mb": 31443.0, "name": "NVIDIA RTX 5000 Ada Generation"}}
+run_user                     : youssef.ghallab
+run_id                       : stage2_ddp_lora_20260420_000617
+run_dir                      : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617
+train_log                    : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/train.log
+gpu_log                      : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/gpu.csv
+loss_points_csv              : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/plots/loss_points.csv
+loss_curve_png               : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/plots/loss_curve.png
+gpu_util_curve_png           : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/plots/gpu_utilization_curve.png
+gpu_mem_curve_png            : /l/users/youssef.ghallab/ml710/logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/plots/gpu_memory_curve.png
+project_dir                  : /l/users/youssef.ghallab/ml710

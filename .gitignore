@@ -4,8 +4,36 @@ checkpoints/
 LLaVA/playground/data/
 LLaVA/.git/
 
-# Logs
-logs/
+# Logs: ignore by default, keep only report-backed run artifacts.
+logs/*
+!logs/runs/
+logs/runs/*
+!logs/runs/youssef.ghallab/
+logs/runs/youssef.ghallab/*
+!logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/
+!logs/runs/youssef.ghallab/stage2_ddp_lora_20260420_000617/**
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260420_181500/
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260420_181500/**
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260421_035839/
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260421_035839/**
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260424_134311/
+!logs/runs/youssef.ghallab/stage2_zero2_lora_20260424_134311/**
+!logs/runs/youssef.ghallab/stage2_zero3_lora_20260420_041514/
+!logs/runs/youssef.ghallab/stage2_zero3_lora_20260420_041514/**
+!logs/runs/youssef.ghallab/stage2_zero3_lora_20260420_041515/
+!logs/runs/youssef.ghallab/stage2_zero3_lora_20260420_041515/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152047_rank0/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152047_rank0/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152047_rank1/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152047_rank1/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152425_rank0/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152425_rank0/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152426_rank1/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_152426_rank1/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank0/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank0/**
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank1/
+!logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank1/**
 slurm-*.out
 
 # Python

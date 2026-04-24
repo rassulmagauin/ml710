@@ -13,7 +13,7 @@ setup_run_logging() {
     export RUNS_ROOT="${RUNS_ROOT:-$LOG_DIR/runs/$RUN_USER}"
     mkdir -p "$RUNS_ROOT"
 
-    export RUN_ID="${METHOD_NAME}_$(date +%Y%m%d_%H%M%S)"
+    export RUN_ID="${METHOD_NAME}_$(date +%Y%m%d_%H%M%S)${RUN_ID_SUFFIX:-}"
     export RUN_DIR="$RUNS_ROOT/$RUN_ID"
     mkdir -p "$RUN_DIR"
 
@@ -23,6 +23,8 @@ setup_run_logging() {
     export SUMMARY_TXT="$RUN_DIR/summary.txt"
     export SUMMARY_JSON="$RUN_DIR/summary.json"
     export SUMMARY_CSV="$RUNS_ROOT/${METHOD_NAME}_summary.csv"
+    export PLOTS_DIR="$RUN_DIR/plots"
+    mkdir -p "$PLOTS_DIR"
 
     GPU_MONITOR_PID=""
     RAM_MONITOR_PID=""
