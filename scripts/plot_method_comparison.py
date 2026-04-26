@@ -247,7 +247,7 @@ def main():
                     ax.text(xi, v, fmt.format(v), ha="center", va="bottom", fontsize=8)
 
     # ---------- 1) Throughput ----------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 5))
     sps = [r["samples_per_sec"] for r in rows]
     bar(ax, sps, "Throughput (samples/sec)", "Stage 2 LoRA — Throughput by Method", fmt="{:.2f}")
     ax.set_yscale("log")
@@ -256,7 +256,7 @@ def main():
     plt.close(fig)
 
     # ---------- 2) Wall-clock ----------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 5))
     runtime_min = [r["runtime_s"] / 60 if not np.isnan(r["runtime_s"]) else np.nan for r in rows]
     bar(ax, runtime_min, "Wall-clock (min)", "Stage 2 LoRA — Wall-clock Time (red hatch = stopped early / timed out)", fmt="{:.0f}")
     fig.tight_layout()
@@ -264,7 +264,7 @@ def main():
     plt.close(fig)
 
     # ---------- 3) Speedup vs DDP ----------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 5))
     ddp_sps = next(r["samples_per_sec"] for r in rows if r["method"] == "DDP")
     speedup = [r["samples_per_sec"] / ddp_sps if ddp_sps else np.nan for r in rows]
     bar(ax, speedup, "Throughput / DDP", "Stage 2 LoRA — Speedup vs DDP Baseline", fmt="{:.2f}x")
@@ -276,7 +276,7 @@ def main():
     plt.close(fig)
 
     # ---------- 4) Peak GPU memory ----------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 5))
     mem_gib = [r["max_gpu_mem_mb"] / 1024 if not np.isnan(r["max_gpu_mem_mb"]) else np.nan for r in rows]
     bar(ax, mem_gib, "Peak GPU memory (GiB)", "Stage 2 LoRA — Peak GPU Memory", fmt="{:.1f}")
     ax.axhline(32.0, color="red", linestyle=":", alpha=0.5, label="RTX 5000 Ada limit (32 GiB)")
@@ -286,7 +286,7 @@ def main():
     plt.close(fig)
 
     # ---------- 5) GPU utilization ----------
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 5))
     util = [r["avg_gpu_util_pct"] for r in rows]
     bar(ax, util, "Avg GPU utilization (%)", "Stage 2 LoRA — Average GPU Utilization", fmt="{:.0f}%")
     ax.set_ylim(0, 105)
@@ -389,6 +389,23 @@ def main():
     axes[1].axhline(0, color="black", linewidth=0.5)
     fig.tight_layout()
     fig.savefig(OUT / "9_goodput.png", dpi=140)
+    plt.close(fig)
+
+    # Also write the two goodput views as separate, presentation-friendly plots.
+    fig, ax = plt.subplots(figsize=(7.5, 5))
+    bar(ax, goodput_per_sec, "Loss drop per second",
+        "Goodput — Loss Reduction per Wall-Clock Second", fmt="{:.5f}")
+    ax.axhline(0, color="black", linewidth=0.5)
+    fig.tight_layout()
+    fig.savefig(OUT / "9a_goodput_per_sec.png", dpi=140)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(7.5, 5))
+    bar(ax, goodput_per_sample, "Loss drop per sample",
+        "Statistical Efficiency — Loss Reduction per Sample", fmt="{:.4f}")
+    ax.axhline(0, color="black", linewidth=0.5)
+    fig.tight_layout()
+    fig.savefig(OUT / "9b_goodput_per_sample.png", dpi=140)
     plt.close(fig)
 
     # Append goodput columns to the summary CSV
