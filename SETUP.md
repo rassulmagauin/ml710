@@ -18,15 +18,11 @@ You land on the **login node** — no GPUs here. Use `salloc` or `sbatch` to run
 
 ```bash
 cd ~
-git clone --recurse-submodules git@github.com:rassulmagauin/ml710.git
+git clone git@github.com:rassulmagauin/ml710.git
 cd ml710
 ```
 
-The `--recurse-submodules` flag pulls the LLaVA source into `LLaVA/`. If you forgot:
-
-```bash
-git submodule update --init --recursive
-```
+The LLaVA source is **vendored** into `LLaVA/` (not a submodule), since the project ships modified pipeline-parallel training code in `LLaVA/llava/train/train_pipe*.py`.
 
 ---
 
@@ -39,7 +35,7 @@ If you don't have conda yet, install [Miniconda](https://docs.anaconda.com/minic
 conda create -n llava python=3.10 -y
 conda activate llava
 
-# Install LLaVA dependencies
+# Install LLaVA dependencies (LLaVA is vendored at ./LLaVA)
 cd LLaVA
 pip install --upgrade pip
 pip install -e .

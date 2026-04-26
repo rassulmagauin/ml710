@@ -21,86 +21,89 @@ Two-stage training:
 
 ```
 ml710/
-├── LLaVA/                    # Official LLaVA repo (haotian-liu/LLaVA)
-│   └── llava/train/          # Training scripts (train.py, llava_trainer.py)
-├── scripts/                  # Our experiment launch scripts
-│   ├── run_baseline_1gpu.sh  # Single-GPU baseline (sbatch)
-│   ├── run_baseline_ddp.sh   # 2-GPU DDP baseline (torchrun, 2-node)
-│   ├── run_stage2_1gpu.sh    # Stage 2 LoRA fine-tuning baseline (main current path)
-│   ├── run_stage2_ddp.sh     # Stage 2 DDP baseline
-│   ├── download_stage2_data.sh # Downloads Stage 2 data + creates subset
-│   ├── create_subset.py      # Utility to create data subsets
-│   ├── run_logging.sh        # Shared logging wrapper for all experiment scripts
-│   └── summarize_run.py      # Summarizes one run into text/json/csv
-├── configs/                  # DeepSpeed configurations
-│   └── zero0.json            # ZeRO Stage 0 (pure DDP, no sharding)
-├── CLAUDE.md                 # Claude Code project context
+├── LLaVA/                            # Official LLaVA source, vendored (not a submodule)
+│   └── llava/train/
+│       ├── train.py                  # Stock LLaVA Stage 1/2 training entry point
+│       ├── train_mem.py              # Same, with flash_attention_2
+│       ├── train_pipe.py             # Manual pipeline-parallel trainer (single node)
+│       ├── train_pipe_dist.py        # 2-node distributed pipeline (Gloo)
+│       └── train_pipe_8gpu.py        # 8-GPU pipeline variant
+├── scripts/                          # Our experiment launch scripts
+│   ├── run_baseline_1gpu.sh          # Stage 1 single-GPU (historical reference)
+│   ├── run_baseline_ddp.sh           # Stage 1 DDP, 2 nodes x 1 GPU
+│   ├── run_stage2_1gpu.sh            # Stage 2 LoRA, single-GPU baseline
+│   ├── run_stage2_ddp.sh             # Stage 2 LoRA, DDP, 2 nodes x 1 GPU
+│   ├── run_stage2_zero2_lora.sh      # Stage 2 LoRA, DeepSpeed ZeRO-2
+│   ├── run_stage2_zero2_lora_util.sh # ZeRO-2 with utilization-tuned defaults
+│   ├── run_stage2_zero3_lora.sh      # Stage 2 LoRA, DeepSpeed ZeRO-3, 2 nodes
+│   ├── run_stage2_zero3_lora_util.sh # ZeRO-3 with bounded async comm
+│   ├── run_stage2_pipe_lora.sh       # Stage 2 LoRA, manual pipeline parallel
+│   ├── run_stage2_pipe_lora_safe.sh  # Pipeline launcher with conservative defaults
+│   ├── download_stage2_data.sh       # Downloads Stage 2 data + creates 10K subset
+│   ├── create_subset.py              # Random subset utility
+│   ├── run_logging.sh                # Shared run-logging wrapper
+│   ├── summarize_run.py              # Per-run + cumulative CSV/plot summarizer
+│   └── plot_statistical_efficiency.py
+├── configs/                          # DeepSpeed configurations
+│   ├── zero0.json                    # ZeRO Stage 0 (pure DDP, no sharding)
+│   ├── zero2.json                    # ZeRO Stage 2 (optimizer + grad sharding)
+│   ├── zero3.json                    # ZeRO Stage 3 (full sharding)
+│   └── zero3_bounded_async.json      # ZeRO-3 with capped allgather/reduce buckets
+├── logs/runs/<user>/<run_id>/        # Per-run artifacts (train.log, gpu.csv, summary.*)
+├── checkpoints/                      # Training output
+├── SETUP.md                          # Reproduction instructions
+├── SYSTEM_REQUIREMENTS.md            # Per-strategy hardware/software requirements
+├── ZERO2_RESULTS.md                  # ZeRO-2 / ZeRO-3 / Pipeline result tables
+├── ZERO3_NOTES.md                    # ZeRO-3 launcher notes
+├── results_explanation.md            # Narrative explanation of why each result happened
+├── CLAUDE.md                         # Project context for Claude Code
 └── README.md
 ```
-
-## Current Repo State
-
-The repo now has **two active experiment tracks**:
-
-1. **Stage 1 baseline (historical reference)**  
-   Uses the original LLaVA pre-training idea: train only the multimodal projector while the vision tower and LLM stay frozen.
-
-2. **Stage 2 benchmark path (current main direction)**  
-   Starts from a pre-trained `llava-v1.5-7b` checkpoint and runs LoRA fine-tuning on reduced instruction-tuning subsets. This is the current path used to compare parallelization techniques under a more realistic multimodal training workload.
-
-Stage 1 scripts are still useful as a controlled baseline. Stage 2 scripts are the current main benchmark path for systems comparison.
 
 ## HPC Environment
 
 - **Cluster**: MBZUAI HPC (`login-student-lab.mbzu.ae`)
-- **GPU partition**: 4 nodes, 8x NVIDIA RTX 5000 Ada (32GB) each — limited to 1 GPU/user
-- **ws-ia partition**: 116 nodes, 1x RTX 5000 Ada each — used for multi-node DDP
-- **Software**: Python 3.10, PyTorch 2.1.2, DeepSpeed 0.12.6, Transformers 4.37.2
+- **GPU partition**: 4 nodes, 8x NVIDIA RTX 5000 Ada (32GB) each — limited to 1 GPU/user via `gpu-1` QOS
+- **ws-ia partition**: 116 nodes, 1x RTX 5000 Ada each — used for multi-node distributed training (2 separate `salloc` sessions)
+- **Software**: Python 3.10, PyTorch 2.1.2, DeepSpeed 0.12.6, Transformers 4.37.2, peft 0.6.0, accelerate 0.25.0
 
-Multi-GPU training uses 2 separate `salloc` sessions on `ws-ia` nodes with `torchrun --nnodes=2`, since the HPC QOS limits each job to 1 GPU.
+Multi-GPU runs use 2 separate `salloc` sessions on `ws-ia` nodes connected over ~1 Gbps Ethernet (no NVLink, no InfiniBand). This network-bound interconnect strongly shapes the results below.
 
-## Baseline Results
+## Stage 2 Results (LoRA fine-tune from `llava-v1.5-7b`, 10K instruction subset)
 
-All experiments use a **10K sample subset** (from 558K total) of Stage 1 pre-training data, to keep each run under 1 hour.
+All Stage 2 runs use the same recipe: Vicuna-7B + CLIP ViT-L/14-336, LoRA (r=128, α=256), bf16, gradient checkpointing, cosine schedule, 1 epoch. Each strategy was launched on the `ws-ia` partition with 2 nodes × 1 GPU (or 1 GPU for the single-GPU baselines).
 
-### Single-GPU vs DDP (2-GPU) Baseline
+| Strategy | Effective batch | Wall time | Throughput | Peak GPU mem | GPU util | Notes |
+|---|---:|---:|---:|---:|---:|---|
+| Single-GPU LoRA | 1 | 96 min | 1.74 samples/s | 26.3 GiB | 90.9% | Baseline (no parallelism) |
+| **DDP** (2×1 GPU) | 32 | 4491 s (74.9 min) | 2.22 samples/s | 31.4 GiB | 70.7% | Naïve baseline |
+| **ZeRO-2** (best) | 32 | 3503 s (58.4 min) | 3.01 samples/s | 28.3 GiB | 88.5% | **1.28× over DDP** |
+| **ZeRO-3** | 8 | timed out at 292/1250 steps | ~0.17 samples/s extrapolated | 30.3 GiB | 99.3% | Projected ~16.5 h, ~13× slower than DDP |
+| **FSDP** (PyTorch native) | 8 | stopped at 28/1250 steps | 0.095 samples/s | 32.3 GiB | 97.5% | Projected ~27.9 h, ~22× slower than DDP; ~1.7× slower than ZeRO-3 |
+| **Pipeline** (split=12) | 16 | 4325 s (72.1 min) | 0.85 samples/s | 32.1 GiB | 33.9% / 56.1% | Completed; not faster than DDP |
 
-| Metric | 1 GPU | 2 GPU DDP | Speedup |
-|---|---|---|---|
-| Runtime | 2789.8s (46.5 min) | 1476.3s (24.6 min) | **1.89x** |
-| Throughput | 3.585 samples/sec | 6.773 samples/sec | **1.89x** |
-| Training steps | 625 | 313 | — |
-| Batch size (per GPU) | 16 | 16 | — |
-| Effective batch size | 16 | 32 | — |
-| Avg train loss | 2.7509 | 3.1735 | — |
-| Final loss | 2.64 | 2.83 | — |
+See **`ZERO2_RESULTS.md`** for the full per-run table and **`results_explanation.md`** for the analysis. Highlights:
 
-**Key observations:**
-- **1.89x speedup** with 2 GPUs — close to ideal 2x linear scaling
-- ~11% overhead from cross-node NCCL communication (ws-ia nodes connected over network, not NVLink)
-- DDP avg loss is higher because each GPU sees only half the data (fewer gradient updates), but final losses are comparable
-- Both runs used eager attention (no flash-attn), bf16, gradient checkpointing
+- **ZeRO-2 only modestly beats DDP** because LoRA already shrinks optimizer/gradient state — there's almost nothing to shard.
+- **Pipeline only completed with split=12 + microbatch=1**; uneven splits OOM'd the heavier rank.
+- **ZeRO-3 is ~13× slower than DDP on this setup** because per-layer AllGather/ReduceScatter of full bf16 weights bottlenecks on cross-node 1 Gbps Ethernet.
+- **PyTorch FSDP is even slower than DeepSpeed ZeRO-3** (~1.7×) on the same hardware — same algorithm class, but ZeRO-3's bucketed async communication overlaps gather with compute more aggressively than FSDP's defaults. Implementation matters when interconnect is the bottleneck.
 
-### Setup Details
+## Parallelism Strategies (Implemented)
 
-- **Model**: Vicuna-7B-v1.5 base (not pre-trained LLaVA checkpoint)
-- **Training**: Stage 1 only (projection pre-training), 1 epoch, lr=1e-3, cosine schedule
-- **Data**: 10K random subset (seed=42) of `blip_laion_cc_sbu_558k.json`
-- **DeepSpeed**: ZeRO Stage 0 for DDP (pure data parallelism, no parameter/gradient/optimizer sharding)
+The course project asks each team member to implement at least one non-trivial parallelism strategy (DDP doesn't count). The repo currently has:
 
-## Parallelism Strategies (TODO)
+1. **Pipeline Parallelism** — manual 2-stage split of the Vicuna decoder across 2 nodes. Vision tower + projection + decoder layers `0..k` on rank 0, layers `k..31` + LM head on rank 1. Implemented in `LLaVA/llava/train/train_pipe_dist.py` (Gloo backend over Ethernet). Best balanced split is `k=12`.
+2. **DeepSpeed ZeRO-2** — sharded optimizer states + gradients across 2 ranks. Pure data parallelism with memory-optimized state.
+3. **DeepSpeed ZeRO-3** — sharded optimizer states + gradients + parameters. Same data-parallel semantics as ZeRO-2 but with per-layer AllGather of weights at compute time.
 
-Each team member implements one non-trivial strategy beyond the DDP baseline:
-
-1. **Pipeline Parallelism** — Split model stages (vision encoder / projection / LLM layers) across GPUs
-2. **Tensor Parallelism** — Split attention/MLP within transformer layers across GPUs (Megatron-style)
-3. **FSDP / ZeRO Stage 2-3** — Shard parameters, gradients, and optimizer states across GPUs
+Whether ZeRO-2 and ZeRO-3 satisfy the "3 distinct strategies" rule (vs. counting as two configurations of the same algorithm) is being clarified with the course staff — both are formally classified as "ZeRO-DP" in the DeepSpeed paper.
 
 ## How to Run
 
-> **For full reproduction instructions (env setup, model/data download, batch job parameters, common gotchas), see [SETUP.md](SETUP.md).**
+> **For full reproduction instructions (env setup, model/data download, common gotchas), see [SETUP.md](SETUP.md).**
 >
-> **For the project parallelization plan and per-strategy system requirements, see [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md).**
+> **For per-strategy hardware/software requirements, see [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md).**
 
 ### Prerequisites
 
@@ -109,94 +112,66 @@ ssh YOUR_USERNAME@login-student-lab.mbzu.ae
 eval "$(conda shell.bash hook)" && conda activate llava
 ```
 
-### Single-GPU Baseline
+### Stage 2 single-GPU baseline
 
 ```bash
-sbatch scripts/run_baseline_1gpu.sh
-```
-
-### DDP Baseline (2 nodes)
-
-```bash
-# Terminal A:
-salloc -p ws-ia -N1 -n12 -w ws-l4-XXX --mem=64G
-conda activate llava && bash scripts/run_baseline_ddp.sh
-
-# Terminal B:
-salloc -p ws-ia -N1 -n12 -w ws-l4-YYY --mem=64G
-conda activate llava && bash scripts/run_baseline_ddp.sh
-```
-
-Update `master_node` and `worker_node` in `scripts/run_baseline_ddp.sh` with actual allocated hostnames before running.
-
-### Stage 2 Single-GPU Baseline
-
-```bash
-bash scripts/download_stage2_data.sh
+bash scripts/download_stage2_data.sh   # one-time, ~14 GB
 sbatch scripts/run_stage2_1gpu.sh
 ```
 
-This fine-tunes a pre-trained `llava-v1.5-7b` checkpoint with LoRA on the Stage 2 instruction-tuning subset (`llava_instruct_10k.json` by default).
+### Stage 2 multi-node (2× ws-ia, 1 GPU each)
 
-### Stage 2 DDP Baseline
+All multi-node launchers follow the same pattern: allocate two nodes in two terminals, then run the same script on both.
 
 ```bash
 # Terminal A:
 salloc -p ws-ia -N1 -n12 -w ws-l4-XXX --mem=64G
-conda activate llava && bash scripts/run_stage2_ddp.sh
+conda activate llava && bash scripts/<launcher>.sh
 
 # Terminal B:
 salloc -p ws-ia -N1 -n12 -w ws-l4-YYY --mem=64G
-conda activate llava && bash scripts/run_stage2_ddp.sh
+conda activate llava && bash scripts/<launcher>.sh
 ```
 
-Update `master_node` and `worker_node` in `scripts/run_stage2_ddp.sh` before running.
+Where `<launcher>` is one of:
 
-### Create Data Subset
+| Strategy | Launcher |
+|---|---|
+| DDP (Stage 1) | `run_baseline_ddp.sh` |
+| DDP (Stage 2 LoRA) | `run_stage2_ddp.sh` |
+| ZeRO-2 | `run_stage2_zero2_lora.sh` |
+| ZeRO-2 (utilization-tuned) | `run_stage2_zero2_lora_util.sh` |
+| ZeRO-3 | `run_stage2_zero3_lora.sh` |
+| ZeRO-3 (bounded async comm) | `run_stage2_zero3_lora_util.sh` |
+| Pipeline parallel | `run_stage2_pipe_lora.sh` |
 
-```bash
-python scripts/create_subset.py --input LLaVA/playground/data/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json \
-    --output LLaVA/playground/data/LLaVA-Pretrain/blip_laion_cc_sbu_10k.json --n 10000
-```
+Each launcher requires editing `master_node` and `worker_node` (or `MASTER_NODE` / `WORKER_NODE` env vars) to match the hostnames returned by `salloc`.
 
-### Logging and Run Artifacts
+### Logging and run artifacts
 
-All current training wrappers use shared external logging helpers:
-
-- `scripts/run_logging.sh`
-- `scripts/summarize_run.py`
-
-These keep metrics collection outside the upstream `LLaVA` code. Each run records:
+All training launchers source `scripts/run_logging.sh`, which records:
 
 - end-to-end runtime
-- trainer-reported runtime and throughput
-- logged losses
-- GPU memory/utilization snapshots
-- host RAM snapshots
+- HF Trainer-reported runtime, throughput, samples/sec
+- per-step logged loss
+- GPU memory and utilization snapshots (`nvidia-smi`, every 5 s)
+- host RAM snapshots (`free -h`, every 5 s)
 
-Run artifacts are stored under:
+Run artifacts are stored at:
 
-```text
+```
 logs/runs/<user>/<run_id>/
+    train.log
+    gpu.csv
+    ram.log
+    summary.txt
+    summary.json
+    plots/
 ```
 
-Typical files for one run:
+Plus a per-method cumulative CSV at `logs/runs/<user>/<method>_summary.csv`.
 
-```text
-train.log
-gpu.csv
-ram.log
-summary.txt
-summary.json
-```
-
-There is also a per-method cumulative CSV under the same user directory:
-
-```text
-logs/runs/<user>/<method>_summary.csv
-```
-
-To add the same logging to a new training script, source the wrapper and call:
+To add the same logging to a new training script:
 
 ```bash
 source "$PROJECT_DIR/scripts/run_logging.sh"
@@ -207,12 +182,26 @@ start_run_logging
 finish_run_logging "$TRAIN_EXIT"
 ```
 
+## Stage 1 Baseline (Historical Reference)
+
+The original baseline trained only the MLP projection (Stage 1 pretrain) on a 10K subset of `blip_laion_cc_sbu_558k`. Kept here as a controlled DDP scaling reference, not the primary benchmark.
+
+| Metric | 1 GPU | 2-GPU DDP | Speedup |
+|---|---:|---:|---:|
+| Runtime | 2789.8 s | 1476.3 s | **1.89×** |
+| Throughput | 3.585 samples/s | 6.773 samples/s | **1.89×** |
+| Effective batch | 16 | 32 | — |
+| Avg train loss | 2.7509 | 3.1735 | — |
+
+The Stage 2 numbers are smaller in nominal speedup because the MLP-only Stage 1 has almost no gradient communication, while Stage 2 LoRA AllReduces adapter gradients across nodes every step.
+
 ## Team
 
-ML710 Spring 2026, MBZUAI
+ML710 Spring 2026, MBZUAI. Deadline: 2026-04-29. Deliverable: ≤ 30 slides.
 
 ## References
 
 - Liu et al., "Visual Instruction Tuning", NeurIPS 2023
 - [LLaVA GitHub](https://github.com/haotian-liu/LLaVA)
 - [DeepSpeed](https://github.com/microsoft/DeepSpeed)
+- Rajbhandari et al., "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", SC 2020

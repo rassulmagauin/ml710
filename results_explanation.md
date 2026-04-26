@@ -72,3 +72,27 @@ Concretely:
 The effective batch was also halved to 8 (vs DDP's 32), so it needed more steps per epoch to begin with — 1250 steps vs ~312 for DDP.
 
 **Summary:** ZeRO-3 shards model parameters, which forces constant weight re-materialization via AllGather across nodes. On 1–10 Gbps Ethernet this dominates everything. ZeRO-3 only makes sense with high-bandwidth interconnects (InfiniBand, NVLink) or when the model is too large to fit even a single replica. Neither condition applies here — a 7B LoRA fit comfortably in 30 GiB on a single RTX 5000 Ada.
+
+---
+
+## PyTorch FSDP vs DeepSpeed ZeRO-3
+
+To check whether ZeRO-3's slowdown is *fundamental to full sharding* or just *DeepSpeed's implementation*, we ran the same workload with PyTorch's native FSDP (`full_shard auto_wrap`, `LlamaDecoderLayer` wrap policy, `use_orig_params=True`).
+
+| | DeepSpeed ZeRO-3 | PyTorch FSDP |
+|---|---|---|
+| Effective batch | 8 | 8 |
+| Per-step time | ~48 s | ~80 s |
+| Throughput | ~0.17 samples/s | 0.095 samples/s |
+| Projected full wall | ~16.5 h | ~27.9 h |
+| Peak GPU memory | 30.3 GiB | 32.3 GiB |
+| Avg GPU util | 99.3% | 97.5% |
+| Slowdown vs DDP | ~13× | ~22× |
+
+**FSDP is ~1.7× slower than ZeRO-3** on the same hardware, same workload, same effective batch. Why:
+
+- ZeRO-3 (this repo's `zero3_bounded_async.json`) bounds `allgather_bucket_size`, `reduce_bucket_size`, `sub_group_size`, and `stage3_prefetch_bucket_size` at 50 MB and enables overlap. The bucketed allgather lets DeepSpeed start fetching the next layer's weights while the current layer is still computing.
+- PyTorch FSDP defaults to wrapping each transformer block as its own FSDP unit. Without explicit `forward_prefetch=True` and bucket tuning, the allgather for layer N+1 can only start after layer N's forward returns, leaving the network idle during compute and the GPU idle during gather.
+- Memory: FSDP's flat-parameter design (FlatParameter contiguous tensor) creates slightly larger gather buffers than DeepSpeed's parameter-coordinator scheme, hence the +2 GiB peak.
+
+**Takeaway for slides:** the ZeRO-DP-3 sharding family is unworkable on 1 Gbps Ethernet for 7B-class models — both implementations fail. Comparing them shows that *implementation-level overlap matters even when the dominant cost is comm*. With a faster interconnect both would scale much better; on this setup, neither is the right tool.

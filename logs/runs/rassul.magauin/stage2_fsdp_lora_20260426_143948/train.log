@@ -1,0 +1,46 @@
+/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/torch/cuda/__init__.py:51: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/torch/cuda/__init__.py:51: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+You are using a model of type llava to instantiate a model of type llava_llama. This is not supported for all configurations of models and can yield errors.
+/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/torch/_utils.py:831: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()
+  return self.fget.__get__(instance, owner)()
+Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  1.09it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.71it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.58it/s]
+Adding LoRA adapters...
+Formatting inputs...Skip in lazy mode
+NCCL version 2.18.1+cuda12.1
+  0%|          | 0/1250 [00:00<?, ?it/s]/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/torch/utils/checkpoint.py:429: UserWarning: torch.utils.checkpoint: please pass in use_reentrant=True or use_reentrant=False explicitly. The default value of use_reentrant will be updated to be False in the future. To maintain current behavior, pass use_reentrant=True. It is recommended that you use use_reentrant=False. Refer to docs for more details on the differences between the two variants.
+  warnings.warn(
+/home/rassul.magauin/miniconda3/envs/llava/lib/python3.10/site-packages/torch/utils/checkpoint.py:61: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn(
+  0%|          | 1/1250 [01:32<32:13:45, 92.89s/it]                                                   {'loss': 0.7303, 'learning_rate': 4.0000000000000003e-07, 'epoch': 0.0}
+  0%|          | 1/1250 [01:32<32:13:45, 92.89s/it]  0%|          | 2/1250 [02:53<29:40:08, 85.58s/it]                                                   {'loss': 0.882, 'learning_rate': 8.000000000000001e-07, 'epoch': 0.0}
+  0%|          | 2/1250 [02:53<29:40:08, 85.58s/it]  0%|          | 3/1250 [04:13<28:49:56, 83.24s/it]                                                   {'loss': 0.742, 'learning_rate': 1.2000000000000002e-06, 'epoch': 0.0}
+  0%|          | 3/1250 [04:13<28:49:56, 83.24s/it]  0%|          | 4/1250 [05:34<28:24:28, 82.08s/it]                                                   {'loss': 0.9671, 'learning_rate': 1.6000000000000001e-06, 'epoch': 0.0}
+  0%|          | 4/1250 [05:34<28:24:28, 82.08s/it]  0%|          | 5/1250 [06:54<28:09:30, 81.42s/it]                                                   {'loss': 1.0038, 'learning_rate': 2.0000000000000003e-06, 'epoch': 0.0}
+  0%|          | 5/1250 [06:54<28:09:30, 81.42s/it]  0%|          | 6/1250 [08:14<28:00:14, 81.04s/it]                                                   {'loss': 0.9144, 'learning_rate': 2.4000000000000003e-06, 'epoch': 0.0}
+  0%|          | 6/1250 [08:14<28:00:14, 81.04s/it]  1%|          | 7/1250 [09:35<27:54:16, 80.82s/it]                                                   {'loss': 0.9175, 'learning_rate': 2.8000000000000003e-06, 'epoch': 0.01}
+  1%|          | 7/1250 [09:35<27:54:16, 80.82s/it]  1%|          | 8/1250 [10:55<27:50:04, 80.68s/it]                                                   {'loss': 0.6039, 'learning_rate': 3.2000000000000003e-06, 'epoch': 0.01}
+  1%|          | 8/1250 [10:55<27:50:04, 80.68s/it]  1%|          | 9/1250 [12:15<27:45:35, 80.53s/it]                                                   {'loss': 0.9632, 'learning_rate': 3.6e-06, 'epoch': 0.01}
+  1%|          | 9/1250 [12:15<27:45:35, 80.53s/it]  1%|          | 10/1250 [13:35<27:42:33, 80.45s/it]                                                    {'loss': 0.7397, 'learning_rate': 4.000000000000001e-06, 'epoch': 0.01}
+  1%|          | 10/1250 [13:35<27:42:33, 80.45s/it]  1%|          | 11/1250 [14:56<27:41:16, 80.45s/it]                                                    {'loss': 0.8432, 'learning_rate': 4.4e-06, 'epoch': 0.01}
+  1%|          | 11/1250 [14:56<27:41:16, 80.45s/it]  1%|          | 12/1250 [16:16<27:40:55, 80.50s/it]                                                    {'loss': 0.7693, 'learning_rate': 4.800000000000001e-06, 'epoch': 0.01}
+  1%|          | 12/1250 [16:16<27:40:55, 80.50s/it]  1%|          | 13/1250 [17:37<27:40:43, 80.55s/it]                                                    {'loss': 0.8435, 'learning_rate': 5.2e-06, 'epoch': 0.01}
+  1%|          | 13/1250 [17:37<27:40:43, 80.55s/it]  1%|          | 14/1250 [18:58<27:39:06, 80.54s/it]                                                    {'loss': 0.864, 'learning_rate': 5.600000000000001e-06, 'epoch': 0.01}
+  1%|          | 14/1250 [18:58<27:39:06, 80.54s/it]  1%|          | 15/1250 [20:18<27:37:28, 80.52s/it]                                                    {'loss': 0.8167, 'learning_rate': 6e-06, 'epoch': 0.01}
+  1%|          | 15/1250 [20:18<27:37:28, 80.52s/it]  1%|▏         | 16/1250 [21:38<27:34:26, 80.44s/it]                                                    {'loss': 0.9267, 'learning_rate': 6.4000000000000006e-06, 'epoch': 0.01}
+  1%|▏         | 16/1250 [21:38<27:34:26, 80.44s/it]  1%|▏         | 17/1250 [22:59<27:32:12, 80.40s/it]                                                    {'loss': 0.8082, 'learning_rate': 6.800000000000001e-06, 'epoch': 0.01}
+  1%|▏         | 17/1250 [22:59<27:32:12, 80.40s/it]  1%|▏         | 18/1250 [24:19<27:30:54, 80.40s/it]                                                    {'loss': 0.8561, 'learning_rate': 7.2e-06, 'epoch': 0.01}
+  1%|▏         | 18/1250 [24:19<27:30:54, 80.40s/it]  2%|▏         | 19/1250 [25:39<27:28:52, 80.37s/it]                                                    {'loss': 0.7835, 'learning_rate': 7.6e-06, 'epoch': 0.02}
+  2%|▏         | 19/1250 [25:39<27:28:52, 80.37s/it]  2%|▏         | 20/1250 [27:00<27:29:03, 80.44s/it]                                                    {'loss': 0.8099, 'learning_rate': 8.000000000000001e-06, 'epoch': 0.02}
+  2%|▏         | 20/1250 [27:00<27:29:03, 80.44s/it]  2%|▏         | 21/1250 [28:20<27:26:54, 80.40s/it]                                                    {'loss': 0.9253, 'learning_rate': 8.400000000000001e-06, 'epoch': 0.02}
+  2%|▏         | 21/1250 [28:20<27:26:54, 80.40s/it]  2%|▏         | 22/1250 [29:41<27:26:11, 80.43s/it]                                                    {'loss': 0.8536, 'learning_rate': 8.8e-06, 'epoch': 0.02}
+  2%|▏         | 22/1250 [29:41<27:26:11, 80.43s/it]  2%|▏         | 23/1250 [31:01<27:25:41, 80.47s/it]                                                    {'loss': 0.8118, 'learning_rate': 9.2e-06, 'epoch': 0.02}
+  2%|▏         | 23/1250 [31:01<27:25:41, 80.47s/it]  2%|▏         | 24/1250 [32:22<27:24:47, 80.50s/it]                                                    {'loss': 0.7935, 'learning_rate': 9.600000000000001e-06, 'epoch': 0.02}
+  2%|▏         | 24/1250 [32:22<27:24:47, 80.50s/it]  2%|▏         | 25/1250 [33:42<27:21:52, 80.42s/it]                                                    {'loss': 0.9026, 'learning_rate': 1e-05, 'epoch': 0.02}
+  2%|▏         | 25/1250 [33:42<27:21:52, 80.42s/it]  2%|▏         | 26/1250 [35:02<27:20:00, 80.39s/it]                                                    {'loss': 0.7992, 'learning_rate': 1.04e-05, 'epoch': 0.02}
+  2%|▏         | 26/1250 [35:02<27:20:00, 80.39s/it]  2%|▏         | 27/1250 [36:23<27:18:39, 80.39s/it]                                                    {'loss': 1.0138, 'learning_rate': 1.08e-05, 'epoch': 0.02}
+  2%|▏         | 27/1250 [36:23<27:18:39, 80.39s/it]  2%|▏         | 28/1250 [37:43<27:18:04, 80.43s/it]                                                    {'loss': 0.8624, 'learning_rate': 1.1200000000000001e-05, 'epoch': 0.02}
+  2%|▏         | 28/1250 [37:43<27:18:04, 80.43s/it]
