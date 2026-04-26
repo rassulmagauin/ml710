@@ -8,10 +8,12 @@ CSV under `plots/comparison/`.
 Methods covered:
   - 1 GPU LoRA baseline           (rassul.magauin, single GPU)
   - DDP                           (youssef.ghallab, 2 nodes x 1 GPU)
+  - DeepSpeed ZeRO-1              (youssef.ghallab, 2 nodes x 1 GPU)
   - DeepSpeed ZeRO-2 (best)       (youssef.ghallab, 2 nodes x 1 GPU)
   - DeepSpeed ZeRO-3              (youssef.ghallab, 2 nodes x 1 GPU, timed out)
-  - PyTorch FSDP                  (rassul.magauin, 2 nodes x 1 GPU, stopped early)
+  - PyTorch FSDP                  (rassul.magauin, 2 nodes x 1 GPU, projected)
   - Manual Pipeline (split=12)    (youssef.ghallab, 2 nodes x 1 GPU)
+  - Tensor Parallel (Megatron)    (rassul.magauin, 2 nodes x 1 GPU, projected)
 
 Usage:
     python scripts/plot_method_comparison.py
@@ -38,10 +40,12 @@ OUT.mkdir(parents=True, exist_ok=True)
 METHODS = [
     ("1 GPU LoRA", "rassul.magauin/stage2_1gpu_lora_20260415_174805", "#9aa3b2", True),
     ("DDP",        "youssef.ghallab/stage2_ddp_lora_20260420_000617", "#1f77b4", True),
+    ("ZeRO-1",     "youssef.ghallab/stage2_zero1_lora_20260423_180000", "#17becf", True),
     ("ZeRO-2",     "youssef.ghallab/stage2_zero2_lora_20260424_134311", "#2ca02c", True),
     ("Pipeline (k=12)", "youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank1", "#ff7f0e", True),
     ("ZeRO-3",     "youssef.ghallab/stage2_zero3_lora_20260420_041514", "#d62728", False),
     ("FSDP",       "rassul.magauin/stage2_fsdp_lora_20260426_143948", "#9467bd", False),
+    ("TP",         "rassul.magauin/stage2_tp_20260427_021303", "#8c564b", False),
 ]
 
 
@@ -363,6 +367,11 @@ def main():
     # Goodput = (initial_loss - final_loss) / wall_time, in "loss units / s".
     # Higher = more useful learning per second of wall-clock.
     # We use the smoothed first/last 5% of the loss curve to avoid noise.
+    # Use a fixed-step window (first 5 / last 5 logged steps) so the head/tail
+    # losses are comparable across methods regardless of curve length. A 5%
+    # window scales with curve length, which biases methods that ran longer
+    # toward lower head loss (their "first 5%" lands past the steep drop).
+    HEAD_TAIL_N = 5
     goodput_per_sec = []
     goodput_per_sample = []
     for r in rows:
@@ -372,12 +381,18 @@ def main():
             goodput_per_sample.append(np.nan)
             continue
         losses = [l for _, l in curve]
-        head = sum(losses[: max(1, len(losses) // 20)]) / max(1, len(losses) // 20)
-        tail = sum(losses[-max(1, len(losses) // 20):]) / max(1, len(losses) // 20)
+        n = min(HEAD_TAIL_N, len(losses))
+        head = sum(losses[:n]) / n
+        tail = sum(losses[-n:]) / n
         delta = head - tail  # positive = loss decreased
         goodput_per_sec.append(delta / r["runtime_s"])
-        eff = r["effective_batch"] if isinstance(r["effective_batch"], (int, float)) else 1
-        samples = float(eff) * (r["last_logged_step"] if isinstance(r["last_logged_step"], int) else len(curve))
+        eff = float(r["effective_batch"]) if str(r["effective_batch"]).replace(".", "").isdigit() else 1.0
+        last_step = r["last_logged_step"] if isinstance(r["last_logged_step"], int) else len(curve)
+        try:
+            last_step = int(last_step)
+        except (TypeError, ValueError):
+            last_step = len(curve)
+        samples = eff * last_step
         goodput_per_sample.append(delta / samples if samples else np.nan)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 4.5))

@@ -2,9 +2,9 @@
 Build the ML710 LLaVA parallelism presentation (PPTX).
 
 Section attribution:
-  Pipeline parallelism  -> Youssef Ghallab
-  ZeRO-2                -> Omar Ahmed
-  ZeRO-3 + FSDP         -> Rassul Magauin
+  Pipeline parallelism            -> Youssef Ghallab
+  ZeRO-1 + ZeRO-2 + ZeRO-3        -> Omar Ahmed
+  FSDP + Tensor Parallel          -> Rassul Magauin
 
 Run:
     python scripts/build_presentation.py
@@ -134,27 +134,29 @@ def split_slide(title, bullets, image_path, image_left=Inches(7.4),
     return s
 
 
-def text_only(title, bullets, base_size=22):
+def text_only(title, bullets, base_size=22, centered_vertically=True):
     s = prs.slides.add_slide(BLANK)
     add_title(s, title)
-    add_bullets(s, bullets, width=Inches(12.1), base_size=base_size)
+    add_bullets(s, bullets, width=Inches(12.1), base_size=base_size,
+                centered_vertically=centered_vertically)
     return s
 
 
-def image_focus(title, image_path, takeaway, image_top=Inches(1.5),
+def image_focus(title, image_path, takeaway, image_top=Inches(1.9),
                 image_width=Inches(8.5), image_left=None):
     """One central plot with a single takeaway line under the title."""
     s = prs.slides.add_slide(BLANK)
     add_title(s, title)
-    # Subtitle / takeaway
+    # Subtitle / takeaway — allow up to 2 wrapped lines
     if takeaway:
         sub = s.shapes.add_textbox(Inches(0.6), Inches(1.15),
-                                   Inches(12.1), Inches(0.4))
+                                   Inches(12.1), Inches(0.75))
         tf = sub.text_frame
+        tf.word_wrap = True
         p = tf.paragraphs[0]
         r = p.add_run()
         r.text = takeaway
-        r.font.size = Pt(18)
+        r.font.size = Pt(16)
         r.font.italic = True
         r.font.color.rgb = GREY_TXT
     # Center the plot
@@ -185,8 +187,8 @@ text_only(
         "Software: PyTorch 2.1.2, DeepSpeed 0.12.6, Transformers 4.37.2, peft 0.6.0.",
         "Team of three, each owning at least one non-trivial parallelism strategy:",
         ("Pipeline parallelism — Youssef Ghallab", 1),
-        ("DeepSpeed ZeRO-2 — Omar Ahmed", 1),
-        ("DeepSpeed ZeRO-3 and PyTorch FSDP — Rassul Magauin", 1),
+        ("DeepSpeed ZeRO-1, ZeRO-2, and ZeRO-3 — Omar Ahmed", 1),
+        ("PyTorch FSDP and Tensor Parallelism — Rassul Magauin", 1),
     ],
     base_size=22,
 )
@@ -218,9 +220,10 @@ text_only(
         ("≈4.6% of total parameters — about 340M of 7.4B.", 1),
         "AdamW, bf16, gradient checkpointing, cosine schedule.",
         "Effective batch sizes vary so each method actually fits in memory:",
-        ("DDP and ZeRO-2: 32 (per_device=16, world=2)", 1),
+        ("DDP, ZeRO-1, ZeRO-2: 32 (per_device=16, world=2)", 1),
         ("Pipeline: 16 (per_device=1, accum=16, world=2)", 1),
-        ("ZeRO-3 and FSDP: 8 (per_device=1, accum=4, world=2)", 1),
+        ("ZeRO-3, FSDP, TP: 8 (per_device=1, accum=4, world=2)", 1),
+        ("TP trains the projection only — no LoRA, since LoRA on TP-sharded base linears is fragile in PyTorch 2.1.", 1),
     ],
     base_size=22,
 )
@@ -231,10 +234,12 @@ text_only(
     [
         "Single-GPU LoRA — reference for what no parallelism looks like.",
         "DDP (DeepSpeed ZeRO-0) — naïve baseline; the model is replicated, gradients are AllReduce'd.",
-        "Pipeline parallelism — the model is split across the two nodes. Owned by Ghallab.",
-        "ZeRO-2 — data parallelism with sharded optimizer states and gradients. Owned by Omar.",
-        "ZeRO-3 — same as ZeRO-2 but parameters are also sharded. Owned by Rassul.",
-        "PyTorch FSDP — PyTorch-native equivalent of ZeRO-3, different implementation. Owned by Rassul.",
+        "Pipeline parallelism — the model is split across the two nodes layer-wise. Owned by Ghallab.",
+        "ZeRO-1 — DDP with sharded optimizer states. Owned by Omar.",
+        "ZeRO-2 — same plus sharded gradients. Owned by Omar.",
+        "ZeRO-3 — same plus sharded parameters. Owned by Omar.",
+        "PyTorch FSDP — PyTorch-native equivalent of ZeRO-3. Owned by Rassul.",
+        "Tensor Parallel — splits each layer's matmuls across the two nodes. Owned by Rassul.",
         "Every multi-node run uses the same two ws-ia nodes, same Ethernet link.",
     ],
     base_size=22,
@@ -275,15 +280,7 @@ split_slide(
     image_top=Inches(1.8), image_width=Inches(5.4),
 )
 
-# 8. DDP GPU plot
-image_focus(
-    "DDP — GPU utilization over time",
-    image_path=RUNS / "youssef.ghallab/stage2_ddp_lora_20260420_000617/plots/gpu_utilization_curve.png",
-    takeaway="Sharp drops on every step are AllReduce stalls — the cost of cross-node Ethernet.",
-    image_width=Inches(9.0),
-)
-
-# 9. Pipeline section
+# 8. Pipeline section
 section_slide("Pipeline Parallelism")
 
 # 10. Pipeline implementation
@@ -338,41 +335,36 @@ split_slide(
 )
 
 # 13. ZeRO-2 section
-section_slide("DeepSpeed ZeRO-2")
+section_slide("DeepSpeed ZeRO-1 / ZeRO-2")
 
 # 14. ZeRO-2 explanation
 text_only(
-    "What ZeRO-2 actually does (Omar)",
+    "ZeRO-1 vs ZeRO-2 (Omar)",
     [
-        "Still data parallelism: each rank trains on a different microbatch.",
-        "What's sharded across the two ranks vs DDP:",
-        ("Optimizer states (AdamW m, v) — sharded.", 1),
-        ("Gradients — sharded after backward via ReduceScatter.", 1),
-        ("Parameters — still replicated on every rank.", 1),
-        "Per-step communication:",
-        ("Backward pass ReduceScatters the gradients to their owner-rank shards.", 1),
-        ("Each rank takes one optimizer step on its shard.", 1),
-        ("AllGather puts the updated parameters back on every rank.", 1),
-        "On paper this saves a lot of memory. On a LoRA workload it doesn't, because the trainable optimizer state is already small.",
-        ("The real win comes from DeepSpeed's bucketed async overlap, not from sharding.", 1),
+        "Both are data parallelism with sharded state. The difference is what gets sharded.",
+        "ZeRO-1:",
+        ("Optimizer states sharded. Gradients still AllReduce'd (like DDP), parameters replicated.", 1),
+        ("After the optimizer step, AllGather to put updated parameters back on every rank.", 1),
+        "ZeRO-2 adds gradient sharding via ReduceScatter:",
+        ("Gradients land on their owner-rank shards directly, no AllReduce.", 1),
+        ("Each rank takes one optimizer step on its shard, then AllGather params back.", 1),
+        ("Comm volume per step is roughly 1.5× the model size — same as ZeRO-1, different schedule.", 1),
+        "On a LoRA workload, both win mostly from DeepSpeed's bucketed async overlap, not from the sharding itself.",
+        ("ZeRO-1 throughput is between DDP and ZeRO-2; ZeRO-2 is fastest because ReduceScatter overlaps better with backward.", 1),
     ],
     base_size=20,
 )
 
-# 15. ZeRO-2 results
+# 15. ZeRO-1 / ZeRO-2 results
 split_slide(
-    "ZeRO-2 — results",
+    "ZeRO-1 / ZeRO-2 — results",
     [
-        "Wall time: 58.4 min — 16 minutes faster than DDP, 22% less wall-clock.",
-        "Throughput: 2.85 samples/sec — 1.28× DDP.",
-        "Peak GPU memory: 27.6 GiB. About 3 GiB lower than DDP.",
-        "GPU utilization: 88.5% (DDP was 70.7%).",
-        ("DeepSpeed's overlap fills the AllReduce-stall gap that DDP couldn't hide.", 1),
-        "Final loss: 1.11 — same as DDP within noise.",
-        "Why isn't the speedup closer to 2×?",
-        ("LoRA's optimizer state is tiny, so there isn't much to shard.", 1),
-        ("Most of the win is the better overlap, not the sharding itself.", 1),
-        "Even so: this is the only method in the comparison that beats plain DDP.",
+        "Both at effective batch 32, full epoch (313 steps).",
+        "ZeRO-1: 65 min, 2.56 sps, 28.8 GiB, 81% util, loss 1.14 — 1.15× DDP.",
+        "ZeRO-2: 58 min, 2.85 sps, 27.6 GiB, 89% util, loss 1.11 — 1.28× DDP.",
+        ("The only method that beats plain DDP outright.", 1),
+        "Why ZeRO-2 edges out ZeRO-1: ReduceScatter overlaps with the backward pass, AllReduce doesn't as cleanly.",
+        "Why the speedup over DDP isn't 2×: LoRA's optimizer state is tiny — most of the win is overlap, not sharding.",
     ],
     image_path=RUNS / "youssef.ghallab/stage2_zero2_lora_20260424_134311/plots/gpu_utilization_curve.png",
     image_top=Inches(2.0), image_width=Inches(5.4),
@@ -384,7 +376,7 @@ section_slide("DeepSpeed ZeRO-3")
 
 # 17. ZeRO-3 explanation
 text_only(
-    "ZeRO-3: shard everything (Rassul)",
+    "ZeRO-3: shard everything (Omar)",
     [
         "Same data-parallel semantics as ZeRO-2. Each rank still sees a different microbatch.",
         "The difference: parameters are also sharded across the two ranks.",
@@ -393,10 +385,11 @@ text_only(
         ("Backward pass: AllGather them again → compute gradients → drop again.", 1),
         ("ReduceScatter the gradients at the end of backward, then run the optimizer on each shard.", 1),
         "On 2 ranks, ~7 GB of parameters live on each. But every layer briefly re-materializes its full ~430 MB on every rank.",
-        "Back-of-envelope for our model:",
-        ("32 transformer layers × 430 MB × 2 (fwd + bwd) ≈ 27.5 GB transferred per step.", 1),
-        ("Over 1 Gbps Ethernet: roughly 4 minutes of comm per step before any compute.", 1),
-        "We used configs/zero3_bounded_async.json: bucketed allgather/reduce at 50 MB.",
+        "Back-of-envelope per microbatch:",
+        ("AllGather other rank's 7 GB shard, fwd + bwd → ~14 GB cross-node per microbatch.", 1),
+        ("× 4 microbatches per optimizer step + ReduceScatter at end ≈ ~63 GB on the wire per step.", 1),
+        ("Over 1 Gbps Ethernet that's minutes of pure comm — DeepSpeed bucketed-async overlap (50 MB) is the only thing keeping it tractable.", 1),
+        "We used configs/zero3_bounded_async.json to cap allgather/reduce buckets.",
     ],
     base_size=18,
 )
@@ -443,66 +436,85 @@ text_only(
 split_slide(
     "FSDP — results",
     [
-        "Stopped early at step 28 of 1250 to capture metrics — same shape as the ZeRO-3 timeout.",
-        "Wall time observed: 39 min. Each step took about 80 seconds.",
-        ("Projected full run: 27.9 hours. Slower than ZeRO-3.", 1),
-        "Throughput: 0.095 samples/sec — about 22× slower than DDP, ~1.7× slower than ZeRO-3.",
-        "Peak GPU memory: 32.3 GiB. Right at the card's limit.",
-        ("FSDP's contiguous FlatParameter is bigger than DeepSpeed's bucket-based scheme.", 1),
-        "GPU utilization: 97.5%.",
+        "Ran to step 292 — matched ZeRO-3's stopping point — at 84 s/step.",
+        "Wall time: 6.8 h. Throughput: 0.095 sps — ~22× slower than DDP, ~1.8× slower than ZeRO-3.",
+        "Peak GPU memory: 31.6 GiB (right at the card's limit).",
+        "GPU utilization: 97.5%. Final loss: 1.34 — matches ZeRO-3 within noise (same algorithm).",
         "Why slower than ZeRO-3 on the same hardware?",
-        ("DeepSpeed's bounded async config (50 MB buckets) overlaps comm with compute aggressively.", 1),
-        ("FSDP's defaults wait for each transformer block's AllGather to finish before computing.", 1),
+        ("DeepSpeed's bounded async (50 MB buckets) overlaps comm with compute aggressively.", 1),
+        ("FSDP's defaults wait for each block's AllGather to finish before computing.", 1),
         ("Same algorithm, different async behavior — the difference is real on a slow link.", 1),
     ],
     image_path=RUNS / "rassul.magauin/stage2_fsdp_lora_20260426_143948/plots/gpu_utilization_curve.png",
     image_top=Inches(2.0), image_width=Inches(5.4),
-    base_size=17,
+    base_size=18,
 )
 
-# 22. Comparison section
+# Tensor Parallel section
+section_slide("Tensor Parallelism")
+
+# TP explanation
+text_only(
+    "Tensor Parallel: split the matmuls (Rassul)",
+    [
+        "Megatron-style intra-layer model parallelism. Each LlamaDecoderLayer's linear sublayers are sharded column-wise or row-wise across the two ranks.",
+        "Sharding plan, applied per layer via torch.distributed.tensor.parallel.parallelize_module:",
+        ("q_proj, k_proj, v_proj, gate_proj, up_proj — Colwise (output dim split).", 1),
+        ("o_proj, down_proj — Rowwise (input dim split, AllReduce on output).", 1),
+        ("After parallelize, num_heads / num_key_value_heads / hidden_size are halved per rank.", 1),
+        "Per-step communication: ~6 cross-node AllReduces per layer × 32 layers × 2 (fwd+bwd) ≈ 384 collectives per microbatch, × 4 grad-accum.",
+        "We trained the MLP projection only — LoRA on TP-sharded base linears is fragile in PyTorch 2.1.2 (DTensor + LoRA's lora_A/B reshape don't compose cleanly).",
+        "Custom 2-rank torchrun launcher: LLaVA/llava/train/train_tp_dist.py + scripts/run_stage2_tp.sh.",
+    ],
+    base_size=18,
+)
+
+# TP results
+split_slide(
+    "TP — results",
+    [
+        "Ran a full epoch — 1250 steps × effective batch 8 — at 11 s/step.",
+        "Wall time: 3.85 h. Throughput: 0.72 sps — 0.32× DDP, but 4× faster than ZeRO-3 and 8× faster than FSDP.",
+        ("TP ships ~2 GB of activations per microbatch vs ZeRO-3's ~14 GB of weights — order of magnitude less.", 1),
+        "Peak GPU memory: 30.6 GiB. GPU util: 77.7%. Final loss: 1.03 — matches DDP at full epoch.",
+        "Takeaway: TP is the only model-parallel method actually usable on this link.",
+        ("Still 3× slower than DDP — per-layer collectives accumulate Ethernet latency.", 1),
+        ("Designed for NVLink, where AllReduce is essentially free.", 1),
+    ],
+    image_path=RUNS / "rassul.magauin/stage2_tp_20260427_021303/plots/gpu_utilization_curve.png",
+    image_top=Inches(2.0), image_width=Inches(5.4),
+    base_size=18,
+)
+
+# Comparison section
 section_slide("Putting it all together")
 
-# 23. Throughput
+# Throughput
 image_focus(
     "Throughput by method",
     image_path=PLOTS / "1_throughput.png",
-    takeaway="ZeRO-2 wins. ZeRO-3 and FSDP collapse on the cross-node link.",
+    takeaway="ZeRO-2 wins, ZeRO-1 close behind. ZeRO-3 / FSDP collapse on Ethernet; TP in the middle.",
 )
 
-# 24. Speedup vs DDP
-image_focus(
-    "Speedup vs DDP",
-    image_path=PLOTS / "3_speedup_vs_ddp.png",
-    takeaway="Only ZeRO-2 actually beats the naïve baseline.",
-)
-
-# 25. Memory
+# Memory
 image_focus(
     "Peak GPU memory",
     image_path=PLOTS / "4_gpu_memory.png",
-    takeaway="ZeRO-3 shards the most, FSDP saturates the card. ZeRO-2 hits a sweet spot.",
+    takeaway="ZeRO-3 shards the most. FSDP and TP saturate the card. ZeRO-2 hits a sweet spot.",
 )
 
-# 26. Goodput per second
+# Goodput per second
 image_focus(
     "Goodput — loss reduction per second",
     image_path=PLOTS / "9a_goodput_per_sec.png",
-    takeaway="What you get back from each second of GPU time.",
+    takeaway="Full-epoch methods cluster on top; cross-layer-comm methods (ZeRO-3 / FSDP / TP) sit below, ordered by throughput.",
 )
 
-# 27. Goodput per sample
-image_focus(
-    "Statistical efficiency",
-    image_path=PLOTS / "9b_goodput_per_sample.png",
-    takeaway="Loss reduction per training sample. Larger effective batches converge faster per sample.",
-)
-
-# 28. Loss curves
+# Loss curves
 image_focus(
     "Loss vs step (smoothed)",
     image_path=PLOTS / "6_loss_vs_step.png",
-    takeaway="Methods that completed all reach a similar loss. The gap is wall-clock, not statistical.",
+    takeaway="All methods follow the same loss-vs-step curve at matched batch. TP's curve extends further because its smaller batch (8 vs 32) needs 1250 steps for a full epoch.",
     image_width=Inches(9.0),
 )
 
@@ -510,18 +522,15 @@ image_focus(
 text_only(
     "What we learned",
     [
-        "ZeRO-2 is the right tool for LoRA fine-tuning on slow interconnects.",
-        ("Sharding optimizer + grads is enough. DeepSpeed's overlap quietly does the rest.", 1),
-        "Pipeline parallelism made the model fit but not faster.",
-        ("Cross-node Gloo activation transfers are slower than DDP's single AllReduce.", 1),
-        ("Layer count is a poor proxy for memory cost — the vision tower and LM head dominate.", 1),
-        "ZeRO-3 and FSDP fall apart over Ethernet.",
-        ("Per-layer AllGather of full bf16 weights is intractable on 1 Gbps.", 1),
-        ("Implementation matters — DeepSpeed ZeRO-3 is ~1.7× faster than PyTorch FSDP because of better overlap.", 1),
-        "These methods would scale on InfiniBand or NVLink. Wrong tool for this hardware.",
-        "A 7B model with LoRA fits comfortably on a single 32 GiB card. Pick a data-parallel variant.",
+        "ZeRO-2 wins for LoRA on slow interconnects (1.28× DDP). ZeRO-1 is close behind at 1.15×.",
+        "Pipeline parallelism made the model fit but not faster — Gloo cross-node transfers cost more than DDP's single AllReduce.",
+        "ZeRO-3 and FSDP fall apart over 1 Gbps Ethernet — per-layer AllGather of bf16 weights is intractable.",
+        ("Implementation matters: DeepSpeed ZeRO-3 is ~1.7× faster than PyTorch FSDP, thanks to better overlap.", 1),
+        "Tensor Parallel is the only model-parallel method actually usable here — 3× slower than DDP, but ships ~7× less data than ZeRO-3.",
+        "The heavy methods (ZeRO-3, FSDP, TP) all need NVLink or InfiniBand. Wrong tool for Ethernet.",
+        "A 7B model with LoRA fits comfortably on one 32 GiB card — pick a data-parallel variant.",
     ],
-    base_size=21,
+    base_size=22,
 )
 
 # 30. Thanks

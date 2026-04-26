@@ -1,6 +1,6 @@
 # System Requirements for LLaVA Parallelization
 
-This document consolidates the project requirements scattered across `CLAUDE.md`, `README.md`, and `SETUP.md`, then turns them into concrete system requirements for each training strategy.
+This document consolidates the project requirements from `README.md` and `SETUP.md`, then turns them into concrete system requirements for each training strategy.
 
 ## Techniques We Need to Run
 

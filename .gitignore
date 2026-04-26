@@ -34,6 +34,14 @@ logs/runs/youssef.ghallab/*
 !logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank0/**
 !logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank1/
 !logs/runs/youssef.ghallab/stage2_pipe_lora_dist_20260424_153422_rank1/**
+!logs/runs/youssef.ghallab/stage2_zero1_lora_20260423_180000/
+!logs/runs/youssef.ghallab/stage2_zero1_lora_20260423_180000/**
+!logs/runs/rassul.magauin/
+logs/runs/rassul.magauin/*
+!logs/runs/rassul.magauin/stage2_fsdp_lora_20260426_143948/
+!logs/runs/rassul.magauin/stage2_fsdp_lora_20260426_143948/**
+!logs/runs/rassul.magauin/stage2_tp_20260427_021303/
+!logs/runs/rassul.magauin/stage2_tp_20260427_021303/**
 slurm-*.out
 
 # Python
@@ -48,8 +56,10 @@ __pycache__/
 *.swp
 *.swo
 
-# Claude Code
+# Editor / tooling
 .claude/
+.vscode/
+.idea/
 
 # Lab materials (reference only, not our code)
 2026 Labs/

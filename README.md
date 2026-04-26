@@ -56,7 +56,6 @@ ml710/
 ├── ZERO2_RESULTS.md                  # ZeRO-2 / ZeRO-3 / Pipeline result tables
 ├── ZERO3_NOTES.md                    # ZeRO-3 launcher notes
 ├── results_explanation.md            # Narrative explanation of why each result happened
-├── CLAUDE.md                         # Project context for Claude Code
 └── README.md
 ```
 
