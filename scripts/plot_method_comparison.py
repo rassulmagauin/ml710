@@ -359,6 +359,49 @@ def main():
     fig.savefig(OUT / "7_loss_vs_samples.png", dpi=140)
     plt.close(fig)
 
+    # ---------- 8b) Goodput: loss-drop per second ----------
+    # Goodput = (initial_loss - final_loss) / wall_time, in "loss units / s".
+    # Higher = more useful learning per second of wall-clock.
+    # We use the smoothed first/last 5% of the loss curve to avoid noise.
+    goodput_per_sec = []
+    goodput_per_sample = []
+    for r in rows:
+        curve = loss_curves[r["method"]]
+        if not curve or np.isnan(r["runtime_s"]):
+            goodput_per_sec.append(np.nan)
+            goodput_per_sample.append(np.nan)
+            continue
+        losses = [l for _, l in curve]
+        head = sum(losses[: max(1, len(losses) // 20)]) / max(1, len(losses) // 20)
+        tail = sum(losses[-max(1, len(losses) // 20):]) / max(1, len(losses) // 20)
+        delta = head - tail  # positive = loss decreased
+        goodput_per_sec.append(delta / r["runtime_s"])
+        eff = r["effective_batch"] if isinstance(r["effective_batch"], (int, float)) else 1
+        samples = float(eff) * (r["last_logged_step"] if isinstance(r["last_logged_step"], int) else len(curve))
+        goodput_per_sample.append(delta / samples if samples else np.nan)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4.5))
+    bar(axes[0], goodput_per_sec, "Loss drop per second",
+        "Goodput — Loss Reduction per Wall-Clock Second", fmt="{:.5f}")
+    axes[0].axhline(0, color="black", linewidth=0.5)
+    bar(axes[1], goodput_per_sample, "Loss drop per sample",
+        "Goodput — Loss Reduction per Training Sample (statistical efficiency)", fmt="{:.4f}")
+    axes[1].axhline(0, color="black", linewidth=0.5)
+    fig.tight_layout()
+    fig.savefig(OUT / "9_goodput.png", dpi=140)
+    plt.close(fig)
+
+    # Append goodput columns to the summary CSV
+    rows_csv = list(csv.reader(open(OUT / "method_summary.csv")))
+    rows_csv[0] += ["goodput_loss_per_sec", "goodput_loss_per_sample"]
+    for i, (gps, gpsam) in enumerate(zip(goodput_per_sec, goodput_per_sample), start=1):
+        rows_csv[i] += [
+            f"{gps:.6f}" if not np.isnan(gps) else "n/a",
+            f"{gpsam:.6f}" if not np.isnan(gpsam) else "n/a",
+        ]
+    with (OUT / "method_summary.csv").open("w", newline="") as fh:
+        csv.writer(fh).writerows(rows_csv)
+
     # ---------- 8) Memory–throughput tradeoff ----------
     fig, ax = plt.subplots(figsize=(8, 5.5))
     for r in rows:

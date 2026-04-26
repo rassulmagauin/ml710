@@ -1,7 +1,7 @@
-method,completed,effective_batch,runtime_s,samples_per_sec,speedup_vs_ddp,max_gpu_mem_mb,avg_gpu_util_pct,last_logged_step,final_loss,avg_logged_loss
-1 GPU LoRA,True,1,5761,1.736,0.78,26287,11.4,n/a,1.321,1.105
-DDP,True,32,4491,2.223,1.00,31443,70.7,312,1.040,1.180
-ZeRO-2,True,32,3503,2.850,1.28,28263,88.5,312,1.107,1.215
-Pipeline (k=12),True,16,4325,2.312,1.04,32117,56.1,n/a,1.570,1.221
-ZeRO-3,False,8,14065,0.168,0.08,22527,99.2,292,1.308,1.514
-FSDP,False,8,2350,0.095,0.04,32331,97.5,28,0.862,0.848
+method,completed,effective_batch,runtime_s,samples_per_sec,speedup_vs_ddp,max_gpu_mem_mb,avg_gpu_util_pct,last_logged_step,final_loss,avg_logged_loss,goodput_loss_per_sec,goodput_loss_per_sample
+1 GPU LoRA,True,1,5761,1.736,0.78,26287,11.4,n/a,1.321,1.105,-0.000011,-0.000007
+DDP,True,32,4491,2.223,1.00,31443,70.7,312,1.040,1.180,0.000313,0.004510
+ZeRO-2,True,32,3503,2.850,1.28,28263,88.5,312,1.107,1.215,0.000372,0.004181
+Pipeline (k=12),True,16,4325,2.312,1.04,32117,56.1,n/a,1.570,1.221,0.000239,0.001655
+ZeRO-3,False,8,14065,0.168,0.08,22527,99.2,292,1.308,1.514,0.000294,0.001772
+FSDP,False,8,2350,0.095,0.04,32331,97.5,28,0.862,0.848,-0.000056,-0.004718
